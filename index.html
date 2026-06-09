@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ophthalmology Clinic Records</title>
+    <style>
+        :root {
+            --primary: #2b6cb0;
+            --primary-hover: #2c5282;
+            --bg: #f7fafc;
+            --card-bg: #ffffff;
+            --text: #2d3748;
+            --border: #e2e8f0;
+            --folder-accent: #ecc94b;
+            --success-color: #2f855a;
+            --excel-green: #107c41;
+            --excel-green-hover: #0b592e;
+            --danger: #e53e3e;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+        
+        /* Lock Screen Overlay Styling */
+        #lockScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1a202c;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+            transition: opacity 0.4s ease;
+        }
+        .lock-box {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        .lock-box h2 {
+            margin-top: 0;
+            color: var(--primary);
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+        }
+        .lock-box p {
+            color: #718096;
+            margin-bottom: 25px;
+            font-size: 0.95rem;
+        }
+        .lock-box input {
+            padding: 12px;
+            font-size: 1.1rem;
+            text-align: center;
+            letter-spacing: 2px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        .lock-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .lock-box button {
+            background-color: var(--primary);
+            padding: 12px;
+            font-size: 1.05rem;
+        }
+        .lock-box button:hover {
+            background-color: var(--primary-hover);
+        }
+        #lockError {
+            color: var(--danger);
+            font-weight: 600;
+            margin-top: 12px;
+            font-size: 0.9rem;
+            min-height: 20px;
+        }
+
+        /* Main Application Layout Wrapper */
+        #appContent {
+            display: none; /* Controlled completely via JavaScript security engine */
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid var(--primary);
+            padding-bottom: 15px;
+        }
+        h1 { margin: 0; color: var(--primary); }
+        p.subtitle { margin: 5px 0 0 0; color: #718096; font-style: italic; }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 450px 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+        @media (max-width: 1024px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+        .card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            height: fit-content;
+            margin-bottom: 25px;
+        }
+        h2 { margin-top: 0; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .form-group { margin-bottom: 15px; }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        .inline-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: var(--primary-hover); }
+        
+        /* Excel Export Action Button Styling */
+        .btn-excel {
+            background-color: var(--excel-green);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: auto;
+            padding: 10px 18px;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+        .btn-excel:hover {
+            background-color: var(--excel-green-hover);
+        }
+        
+        /* Search Box styles */
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .search-box input { flex: 1; }
+        .search-box button { width: auto; padding: 0 25px; }
+        
+        /* Medical File Chart Design */
+        .medical-file {
+            background: #fffdf5;
+            border: 2px solid #e2d9b5;
+            border-radius: 8px;
+            padding: 0;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            margin-bottom: 25px;
+        }
+        .file-tab {
+            background: #edf2f7;
+            padding: 15px 25px;
+            border-bottom: 2px solid #e2d9b5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-tab h3 { margin: 0; color: #2c5282; font-size: 1.3rem; }
+        .patient-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            padding: 20px 25px;
+            background: #fff;
+            border-bottom: 1px solid #e2d9b5;
+        }
+        .info-item { font-size: 0.95rem; }
+        .info-item strong { color: #4a5568; display: block; font-size: 0.85rem; text-transform: uppercase; margin-bottom: 2px;}
+
+        .file-body { padding: 25px; }
+        .file-body h4 { margin-top: 0; color: #4a5568; border-bottom: 1px solid #e2d9b5; padding-bottom: 5px; }
+
+        .record-entry {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-left: 5px solid var(--primary);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .record-date { font-weight: bold; color: #2b6cb0; font-size: 1rem; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px dashed var(--border); }
+        .patient-meta { font-size: 0.95rem; margin-bottom: 12px; color: #4a5568; line-height: 1.6; }
+        .clinical-notes { background: #f7fafc; padding: 12px; border: 1px solid var(--border); border-radius: 4px; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.5; }
+        .status-msg { margin-top: 10px; font-weight: bold; text-align: center; }
+        .section-divider {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #718096;
+            margin: 15px 0 8px 0;
+            border-bottom: 1px dashed var(--border);
+            padding-bottom: 3px;
+        }
+
+        /* Research Directory Section Layout */
+        .directory-container {
+            grid-column: 1 / -1;
+            margin-top: 15px;
+        }
+        .directory-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 10px;
+        }
+        .directory-header-row h2 {
+            margin: 0;
+            border: none;
+            padding: 0;
+        }
+        .controls-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex: 1;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            max-width: 900px;
+            width: 100%;
+        }
+        .directory-search {
+            flex: 2;
+            min-width: 220px;
+        }
+        .directory-search input {
+            padding: 10px 12px;
+            border: 2px solid var(--primary);
+            border-radius: 6px;
+        }
+        .directory-sort {
+            flex: 1;
+            min-width: 160px;
+        }
+        .directory-sort select {
+            padding: 10px 12px;
+            border: 2px solid var(--primary);
+            border-radius: 6px;
+            background-color: white;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .directory-table-container {
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            overflow: hidden;
+        }
+        .directory-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+        .directory-table th {
+            background-color: #edf2f7;
+            color: #2d3748;
+            padding: 14px 18px;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border);
+        }
+        .directory-table td {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+        .directory-row {
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .directory-row:hover {
+            background-color: #f0f7ff;
+        }
+        .badge-id {
+            background: #e2e8f0;
+            color: #4a5568;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+        .text-truncate-notes {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+<div id="lockScreen">
+    <div class="lock-box">
+        <h2>🔒 Secure Portal Access</h2>
+        <p>Please enter the administrative passcode to access the clinic's digital files.</p>
+        <input type="password" id="passcodeInput" placeholder="••••••••••••" autocomplete="off">
+        <button id="unlockBtn">Unlock Database</button>
+        <div id="lockError"></div>
+    </div>
+</div>
+
+<div id="appContent">
+    <div class="container">
+        <header>
+            <h1>Ophthalmology Patient Portal</h1>
+            <p class="subtitle">Clinical Records Management System</p>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <h2>New Entry / Visit Log</h2>
+                <form id="patientForm">
+                    <div class="inline-group">
+                        <div class="form-group">
+                            <label for="patientId">Patient ID / Code *</label>
+                            <input type="text" id="patientId" placeholder="e.g., PT-1042" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="visitDate">Date *</label>
+                            <input type="date" id="visitDate" required>
+                        </div>
+                    </div>
+
+                    <div class="inline-group">
+                        <div class="form-group">
+                            <label for="patientName">Patient Full Name *</label>
+                            <input type="text" id="patientName" placeholder="John Doe" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="patientPhone">Phone Number</label>
+                            <input type="tel" id="patientPhone" placeholder="e.g., +964 750 123 4567">
+                        </div>
+                    </div>
+
+                    <div class="section-divider">Visual Acuity & Pressure</div>
+                    <div class="inline-group">
+                        <div class="form-group">
+                            <label for="visualAcuity">Visual Acuity (VA)</label>
+                            <input type="text" id="visualAcuity" placeholder="e.g., OD: 20/40, OS: 20/30">
+                        </div>
+                        <div class="form-group">
+                            <label for="pinholeV">Pinhole VA</label>
+                            <input type="text" id="pinholeV" placeholder="e.g., PH OD: 20/20">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="eyePressure">Intraocular Pressure (IOP)</label>
+                        <input type="text" id="eyePressure" placeholder="e.g., 14 mmHg OD / 15 mmHg OS">
+                    </div>
+
+                    <div class="section-divider">Refraction Data</div>
+                    <div class="form-group">
+                        <label for="manifestRefraction">Manifest Refraction</label>
+                        <textarea id="manifestRefraction" rows="2" placeholder="e.g., OD: -2.50 DS / -0.75 DC x 180"></textarea>
+                    </div>
+
+                    <div class="section-divider">Clinical Evaluation</div>
+                    <div class="form-group">
+                        <label for="clinicalIssues">Clinical Notes, Diagnosis & Prescription</label>
+                        <textarea id="clinicalIssues" rows="4" placeholder="Symptoms, exam findings, treatment plan..."></textarea>
+                    </div>
+
+                    <button type="submit">Save Record to Cloud</button>
+                    <div id="submitStatus" class="status-msg"></div>
+                </form>
+            </div>
+
+            <div class="card" style="background: transparent; border: none; box-shadow: none; padding: 0;">
+                <h2>Single Patient Lookup</h2>
+                <div class="search-box" style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    <input type="text" id="searchQuery" placeholder="Look up single chart by Patient ID or Full Name...">
+                    <button id="searchBtn">Search Database</button>
+                </div>
+                <div id="searchStatus" class="status-msg"></div>
+                
+                <div id="fileContainer"></div>
+            </div>
+
+            <div class="card directory-container">
+                <div class="directory-header-row">
+                    <h2>📋 Research Directory Hub</h2>
+                    <div class="controls-group">
+                        <button id="exportExcelBtn" class="btn-excel">📊 Export to Excel (.csv)</button>
+                        
+                        <div class="directory-search">
+                            <input type="text" id="directorySearchInput" placeholder="🔍 Filter by Name, ID, Diagnosis...">
+                        </div>
+                        <div class="directory-sort">
+                            <select id="directorySortSelect">
+                                <option value="latest">📅 Sort: Latest</option>
+                                <option value="oldest">⏳ Sort: Oldest</option>
+                                <option value="alphabetical">🔤 Sort: Alphabetical</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="directory-table-container">
+                    <table class="directory-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 120px;">Patient ID</th>
+                                <th style="width: 200px;">Patient Name</th>
+                                <th style="width: 120px;">Exam Date</th>
+                                <th style="width: 150px;">VA / IOP Findings</th>
+                                <th>Clinical Evaluation / Notes Summary</th>
+                            </tr>
+                        </thead>
+                        <tbody id="directoryTableBody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: #718096; padding: 30px;">Loading global database registry...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyC9K65V7XShaTLwzlEap7k9UvFzckdfWpI",
+        authDomain: "eye-clinic16.firebaseapp.com",
+        projectId: "eye-clinic16",
+        storageBucket: "eye-clinic16.firebasestorage.app",
+        messagingSenderId: "488291051554",
+        appId: "1:488291051554:web:2c3e18fa50eeffe93bc27b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // In-memory data cache holding arrays pulling from cloud instances
+    let localCacheRecords = [];
+
+    // Gatekeeper Validation Control System
+    const TARGET_PASSCODE = "HawzhinEye@1284";
+
+    function checkPasscode() {
+        const inputVal = document.getElementById('passcodeInput').value;
+        const errorDiv = document.getElementById('lockError');
+
+        if(inputVal === TARGET_PASSCODE) {
+            // Unlocked: Hide Lockscreen and smoothly mount active medical application workspace
+            document.getElementById('lockScreen').style.opacity = "0";
+            setTimeout(() => {
+                document.getElementById('lockScreen').style.display = "none";
+                document.getElementById('appContent').style.display = "block";
+                
+                // Initialize active functional instances once workspace renders safely
+                loadGlobalDirectory();
+            }, 400);
+        } else {
+            errorDiv.innerText = "Invalid security passcode. Access Denied.";
+            document.getElementById('passcodeInput').value = "";
+            document.getElementById('passcodeInput').focus();
+        }
+    }
+
+    // Connect passcode triggers to tracking events
+    document.getElementById('unlockBtn').addEventListener('click', checkPasscode);
+    document.getElementById('passcodeInput').addEventListener('keypress', (e) => {
+        if(e.key === 'Enter') checkPasscode();
+    });
+
+    document.getElementById('visitDate').value = new Date().toISOString().split('T')[0];
+
+    window.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('directorySearchInput').addEventListener('keyup', filterDirectoryRows);
+        document.getElementById('directorySortSelect').addEventListener('change', sortAndRenderDirectory);
+        document.getElementById('exportExcelBtn').addEventListener('click', exportDirectoryToCSV);
+        document.getElementById('passcodeInput').focus();
+    });
+
+    // Fetches all medical entries globally from Firestore database
+    async function loadGlobalDirectory() {
+        const tableBody = document.getElementById('directoryTableBody');
+        try {
+            const recordsRef = collection(db, "patient_records");
+            const snapshot = await getDocs(recordsRef);
+
+            if(snapshot.empty) {
+                tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#718096; padding:30px;">No patient data exists in the cloud instance.</td></tr>`;
+                localCacheRecords = [];
+                return;
+            }
+
+            localCacheRecords = [];
+            snapshot.forEach((doc) => {
+                localCacheRecords.push(doc.data());
+            });
+
+            sortAndRenderDirectory();
+
+        } catch (error) {
+            console.error("Directory component track fault: ", error);
+            tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red; padding:20px; font-weight:bold;">Error syncing directory view with Firestore variables.</td></tr>`;
+        }
+    }
+
+    // Processing framework transforming in-memory structural arrays straight into downloadable Excel charts
+    function exportDirectoryToCSV() {
+        if(localCacheRecords.length === 0) {
+            alert("There is no patient data in the table to export yet!");
+            return;
+        }
+
+        const headers = ["Patient ID", "Full Name", "Contact Phone", "Visit Date", "Visual Acuity (VA)", "Pinhole VA", "Intraocular Pressure (IOP)", "Manifest Refraction", "Clinical Diagnosis & Evaluation Notes"];
+        const csvRows = [];
+        csvRows.push(headers.join(",")); 
+
+        localCacheRecords.forEach(record => {
+            const rowValues = [
+                record.patientId || "",
+                record.patientName || "",
+                record.patientPhone || "",
+                record.visitDate || "",
+                record.visualAcuity || "",
+                record.pinholeV || "",
+                record.eyePressure || "",
+                `"${(record.manifestRefraction || "").replace(/"/g, '""')}"`,
+                `"${(record.clinicalIssues || "").replace(/"/g, '""')}"`
+            ];
+            csvRows.push(rowValues.join(","));
+        });
+
+        const csvContent = "\uFEFF" + csvRows.join("\n"); 
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        
+        const timestamp = new Date().toISOString().split('T')[0];
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Ophthalmology_Research_Export_${timestamp}.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // Handles layout configurations for sorting selections
+    function sortAndRenderDirectory() {
+        const sortBy = document.getElementById('directorySortSelect').value;
+        const tableBody = document.getElementById('directoryTableBody');
+
+        if (sortBy === 'latest') {
+            localCacheRecords.sort((a, b) => new Date(b.visitDate) - new Date(a.visitDate));
+        } else if (sortBy === 'oldest') {
+            localCacheRecords.sort((a, b) => new Date(a.visitDate) - new Date(b.visitDate));
+        } else if (sortBy === 'alphabetical') {
+            localCacheRecords.sort((a, b) => a.patientName.localeCompare(b.patientName));
+        }
+
+        let rowsHtml = '';
+        localCacheRecords.forEach((data) => {
+            const searchableMeta = `${data.patientId} ${data.patientName} ${data.visualAcuity} ${data.eyePressure} ${data.manifestRefraction} ${data.clinicalIssues}`.toLowerCase();
+
+            rowsHtml += `
+                <tr class="directory-row" data-search-blob="${searchableMeta}" onclick="document.getElementById('searchQuery').value='${data.patientId}'; document.getElementById('searchBtn').click(); window.scrollTo({top: 0, behavior: 'smooth'});">
+                    <td><span class="badge-id">${data.patientId}</span></td>
+                    <td style="font-weight: 600; color: var(--primary);">${data.patientName}</td>
+                    <td style="white-space: nowrap;">${data.visitDate}</td>
+                    <td style="font-size: 0.9rem; line-height:1.4;">
+                        <strong>VA:</strong> ${data.visualAcuity || 'N/A'}<br>
+                        <strong>IOP:</strong> ${data.eyePressure || 'N/A'}
+                    </td>
+                    <td>
+                        <div class="text-truncate-notes">
+                            ${data.clinicalIssues || 'No clinical summary notes filed.'}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tableBody.innerHTML = rowsHtml;
+        filterDirectoryRows();
+    }
+
+    // Live local UI string match filtering loops (Saves document read costs)
+    function filterDirectoryRows() {
+        const queryTerm = document.getElementById('directorySearchInput').value.toLowerCase().trim();
+        const structuralRows = document.getElementsByClassName('directory-row');
+
+        for (let i = 0; i < structuralRows.length; i++) {
+            const rowBlob = structuralRows[i].getAttribute('data-search-blob');
+            if (rowBlob.includes(queryTerm)) {
+                structuralRows[i].style.display = "";
+            } else {
+                structuralRows[i].style.display = "none";
+            }
+        }
+    }
+
+    // New Log Entry Processing Submissions
+    document.getElementById('patientForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const statusDiv = document.getElementById('submitStatus');
+        statusDiv.style.color = 'orange';
+        statusDiv.innerText = "Saving data to secure cloud...";
+
+        const patientId = document.getElementById('patientId').value.trim().toUpperCase();
+        const patientName = document.getElementById('patientName').value.trim();
+        const patientPhone = document.getElementById('patientPhone').value.trim();
+        const visitDate = document.getElementById('visitDate').value;
+        const visualAcuity = document.getElementById('visualAcuity').value.trim();
+        const pinholeV = document.getElementById('pinholeV').value.trim();
+        const eyePressure = document.getElementById('eyePressure').value.trim();
+        const manifestRefraction = document.getElementById('manifestRefraction').value.trim();
+        const clinicalIssues = document.getElementById('clinicalIssues').value.trim();
+
+        try {
+            await addDoc(collection(db, "patient_records"), {
+                patientId, patientName, patientPhone, visitDate, visualAcuity, pinholeV, eyePressure, manifestRefraction, clinicalIssues, createdAt: new Date()
+            });
+            statusDiv.style.color = 'green';
+            statusDiv.innerText = "Record successfully saved!";
+            
+            document.getElementById('visualAcuity').value = '';
+            document.getElementById('pinholeV').value = '';
+            document.getElementById('eyePressure').value = '';
+            document.getElementById('manifestRefraction').value = '';
+            document.getElementById('clinicalIssues').value = '';
+
+            loadGlobalDirectory();
+
+        } catch (error) {
+            console.error(error);
+            statusDiv.style.color = 'red';
+            statusDiv.innerText = "Error saving data.";
+        }
+    });
+
+    // Targeted Single Chart Search Matrix
+    document.getElementById('searchBtn').addEventListener('click', async () => {
+        const inputStr = document.getElementById('searchQuery').value.trim();
+        const fileContainer = document.getElementById('fileContainer');
+        const statusDiv = document.getElementById('searchStatus');
+        
+        fileContainer.innerHTML = '';
+        if(!inputStr) {
+            statusDiv.style.color = 'red';
+            statusDiv.innerText = "Please input a name or ID code to run a search query.";
+            return;
+        }
+
+        statusDiv.style.color = 'orange';
+        statusDiv.innerText = "Searching clinical cloud files...";
+
+        try {
+            const recordsRef = collection(db, "patient_records");
+            let querySnapshot;
+            const cleanInput = inputStr.toUpperCase();
+            
+            const idQuery = query(recordsRef, where("patientId", "==", cleanInput));
+            querySnapshot = await getDocs(idQuery);
+            
+            if (querySnapshot.empty) {
+                const nameQuery = query(recordsRef, where("patientName", "==", inputStr));
+                querySnapshot = await getDocs(nameQuery);
+                
+                if(querySnapshot.empty) {
+                    const allDocs = await getDocs(recordsRef);
+                    let matchedRecords = [];
+                    allDocs.forEach((doc) => {
+                        const data = doc.data();
+                        if(data.patientName.toLowerCase().includes(inputStr.toLowerCase())) {
+                            matchedRecords.push(data);
+                        }
+                    });
+                    
+                    if(matchedRecords.length > 0) {
+                        renderMedicalFile(matchedRecords);
+                        statusDiv.innerText = "";
+                        return;
+                    }
+                }
+            }
+
+            if (querySnapshot.empty) {
+                statusDiv.style.color = 'red';
+                statusDiv.innerText = "No matching clinic file or names found.";
+                return;
+            }
+
+            statusDiv.innerText = "";
+            let records = [];
+            querySnapshot.forEach(doc => records.push(doc.data()));
+            renderMedicalFile(records);
+
+        } catch (error) {
+            console.error(error);
+            statusDiv.style.color = 'red';
+            statusDiv.innerText = "Database connection error.";
+        }
+    });
+
+    function renderMedicalFile(records) {
+        const fileContainer = document.getElementById('fileContainer');
+        records.sort((a,b) => new Date(b.visitDate) - new Date(a.visitDate));
+        const primaryProfile = records[0];
+        
+        let fileHtml = `
+            <div class="medical-file">
+                <div class="file-tab">
+                    <h3>📁 Patient Chart File</h3>
+                    <span style="background:var(--primary); color:white; padding:4px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">Active Patient</span>
+                </div>
+                
+                <div class="patient-info-grid">
+                    <div class="info-item"><strong>Full Patient Name</strong>${primaryProfile.patientName}</div>
+                    <div class="info-item"><strong>Patient ID Code</strong>${primaryProfile.patientId}</div>
+                    <div class="info-item"><strong>Contact Phone</strong>${primaryProfile.patientPhone || 'None Registered'}</div>
+                    <div class="info-item"><strong>Total Logged Visits</strong>${records.length} records in system</div>
+                </div>
+                <div class="file-body">
+                    <h4>Clinical History Logs</h4>
+        `;
+        
+        records.forEach(data => {
+            fileHtml += `
+                <div class="record-entry">
+                    <div class="record-date">📅 Examination Date: ${data.visitDate}</div>
+                    <div class="patient-meta">
+                        <strong>Visual Acuity (VA):</strong> ${data.visualAcuity || 'N/A'} &nbsp;|&nbsp; 
+                        <strong>Pinhole VA:</strong> ${data.pinholeV || 'N/A'}<br>
+                        <strong>Intraocular Pressure (IOP):</strong> ${data.eyePressure || 'N/A'}
+                    </div>
+                    ${data.manifestRefraction ? `
+                        <div class="patient-meta" style="background:#f0f4f8; padding:8px 12px; border-radius:4px; margin-bottom:12px; border-left:3px solid #63b3ed;">
+                            <strong>Manifest Refraction Prescription Data:</strong><br>
+                            <span style="white-space: pre-wrap; font-family: monospace;">${data.manifestRefraction}</span>
+                        </div>
+                    ` : ''}
+                    <div class="clinical-notes">
+                        <strong>Doctor Diagnosis & Progress Treatment Evaluation Notes:</strong>\n${data.clinicalIssues || 'No clinical text inputted.'}
+                    </div>
+                </div>
+            `;
+        });
+        
+        fileHtml += `</div></div>`;
+        fileContainer.innerHTML = fileHtml;
+    }
+</script>
+</body>
+</html>
